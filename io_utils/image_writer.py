@@ -163,7 +163,7 @@ def save_cluster_images(cluster_id, faces, base_dir):
     """
     cluster_dir = create_cluster_dirs(base_dir, cluster_id)
     crop_path = os.path.join(cluster_dir, "crop", "face.jpg")
-    
+    #hello world
     # Save representative face crop
     crop_and_save_face(faces[0]["image_path"], faces[0]["bbox"], crop_path)
 
