@@ -181,12 +181,12 @@ Steps:
 5. Save results in folders with crops and metadata
 """
 
-from config import INPUT_FOLDER, OUTPUT_FOLDER, CHROMA_DB_PATH, METADATA_CSV, CLUSTERED_OUTPUT
+from config import INPUT_FOLDER, CHROMA_DB_PATH, METADATA_CSV, CLUSTERED_OUTPUT, BLUR_IMG, embeddings_file, metadata_file, init_dirs
 from face.detector import load_face_model
 from db_utils.chroma_manager import init_chroma, get_collection
 from clustering.cluster_faces import cluster_embeddings
 from io_utils.image_writer import save_cluster_images
-import os, cv2
+import cv2
 import pandas as pd
 from tqdm import tqdm
 import numpy as np
@@ -194,6 +194,7 @@ from collections import defaultdict
 import json
 from pathlib import Path
 from face.utils import is_blurry
+
 
 def process_images():
     """
@@ -210,15 +211,12 @@ def process_images():
     df = pd.DataFrame(columns=["image_path", "face_index", "bbox"])
     embeddings, ids, metadatas = [], [], []
     
-    blur_dir = Path("blurred_faces")
-    blur_dir.mkdir(exist_ok=True)
 
-    for file in tqdm(os.listdir(INPUT_FOLDER)):
-        if not file.lower().endswith((".jpg", ".png", ".jpeg")):
+    for file in tqdm((INPUT_FOLDER.iterdir())):
+        if not file.suffix.lower() in [".jpg", ".png", ".jpeg"]:
             continue
 
-        path = os.path.join(INPUT_FOLDER, file)
-        img = cv2.imread(path)
+        img = cv2.imread(str(file)) # OpenCV still needs string path
         faces = model.get(img)
 
         for idx, face in enumerate(faces):
@@ -232,16 +230,16 @@ def process_images():
             if is_blurry(face_crop, area, MIN_FACE_AREA = 6500):
                 print(f"[BLUR] Skipping blurry face in {file}")
                 
-                cv2.imwrite(str(blur_dir / f"{Path(file).stem}_{idx}.jpg"), face_crop)
+                cv2.imwrite(str(BLUR_IMG / f"{Path(file).stem}_{idx}.jpg"), face_crop)
 
                 continue
             
-            face_id = f"{os.path.splitext(file)[0]}_{idx}"
+            face_id = f"{Path(file).stem}_{idx}"
 
-            df.loc[len(df)] = [path, idx, bbox_str]
+            df.loc[len(df)] = [file, idx, bbox_str]
             ids.append(face_id)
             embeddings.append(face.embedding.tolist())
-            metadatas.append({"image_path": path, "bbox": bbox_str, "face_index": idx})
+            metadatas.append({"image_path": str(file), "bbox": bbox_str, "face_index": idx})
         
         # cv2.imwrite(os.path.join(IMAGES_FOLDER, file), img)
 
@@ -250,9 +248,9 @@ def process_images():
     return collection
 
 def main():
-    cache_path = Path("cache").resolve()
-    cache_path.mkdir(exist_ok=True)
-    if not (cache_path / "embeddings.npy").exists() or not (cache_path / "metadata.json").exists():
+    init_dirs()             #ensure all important output folders defined in config.py are created before they’re used
+    
+    if not embeddings_file.exists() or not metadata_file.exists():
         print("[INFO] Running detection and saving cache...")
         collection = process_images()
         data = collection.get(include=["embeddings", "metadatas"])
@@ -261,19 +259,20 @@ def main():
         metadatas = data["metadatas"]
 
         # Save embeddings
-        np.save(cache_path / "embeddings.npy", embeddings)
+        np.save(embeddings_file, embeddings)
 
         # Save metadata
-        with open(cache_path / "metadata.json", "w") as f:
+        with open(metadata_file, "w") as f:
             json.dump(metadatas, f)
 
     else:
         print("[INFO] Loading from existing cache...")
 
-    # Load from cache
-    embeddings = np.load(cache_path / "embeddings.npy")
-    with open(cache_path / "metadata.json") as f:
-        metadatas = json.load(f)
+        # Load from cache
+        embeddings = np.load(embeddings_file)
+        with open(metadata_file) as f:
+            metadatas = json.load(f)
+            
     for m in metadatas:
         m["bbox"] = tuple(map(int, m["bbox"].split(",")))
 
@@ -285,7 +284,7 @@ def main():
             grouped[cid].append(meta)
 
     for cid, faces in grouped.items():
-        save_cluster_images(cid, faces, str(CLUSTERED_OUTPUT))
+        save_cluster_images(cid, faces, CLUSTERED_OUTPUT)
 
 if __name__ == "__main__":
     main()

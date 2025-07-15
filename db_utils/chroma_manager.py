@@ -40,6 +40,7 @@ import os
 import shutil
 import chromadb
 from chromadb.config import Settings
+from pathlib import Path
 
 def init_chroma(path: str):
     """
@@ -51,12 +52,18 @@ def init_chroma(path: str):
     Returns:
         client: Chroma PersistentClient
     """
-    if os.path.exists(path):
+    RESET = False
+    path = Path(path)
+    if path.exists() and RESET:
         shutil.rmtree(path)
 
     client = chromadb.PersistentClient(
-        path=path,
-        settings=Settings(allow_reset=True, anonymized_telemetry=False)
+        path=str(path),
+        settings=Settings(
+            allow_reset=True,
+            anonymized_telemetry=False,
+            persist_directory= str(path)
+        )
     )
     return client
 

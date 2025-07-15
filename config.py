@@ -44,3 +44,16 @@ IMAGES_FOLDER = OUTPUT_FOLDER / "images"
 
 # Final clustered output folder (faces + annotations)
 CLUSTERED_OUTPUT = OUTPUT_FOLDER / "clustered_output"
+
+# All the cropped blurred images and very small images 
+BLUR_IMG = OUTPUT_FOLDER / "blurred_faces"
+
+# Saves .npy file for embeddings and .json file for metadata
+CACHE_PATH = OUTPUT_FOLDER / "cache"
+
+embeddings_file = CACHE_PATH / "embeddings.npy"
+metadata_file = CACHE_PATH / "metadata.json"
+
+def init_dirs():
+    for folder in [OUTPUT_FOLDER, CHROMA_DB_PATH, CLUSTERED_OUTPUT, BLUR_IMG, CACHE_PATH]:
+        folder.mkdir(parents=True, exist_ok=True)
