@@ -1,33 +1,4 @@
-# """
-# chroma_manager.py
 
-# Handles initialization and management of ChromaDB database.
-# Used to store and retrieve face embeddings for clustering/search.
-# """
-# import os
-# import shutil
-# import chromadb
-# from chromadb.config import Settings
-
-# def init_chroma(path: str, reset = True):
-#     if reset == True and os.path.exists(path): #clears database only if reset flag is True and db already exists
-#         shutil.rmtree(path)
-#     client = chromadb.PersistentClient(path=path, settings= Settings(allow_reset=True, anonymized_telemetry=False))
-#     return client
-
-# def get_collection(client):
-#     """
-#     Creates a new collection or resets existing one.
-
-#     Args:
-#         client: ChromaDB client
-    
-#     Returns:
-#         collection: Collection for face embeddings
-#     """
-#     if "face_embeddings" in client.list_collections():
-#         client.delete_collection("face_embeddings")
-#     return client.get_or_create_collection(name="face_embeddings", metadata={"hnsw:space": "cosine"})
 
 """
 chroma_manager.py
